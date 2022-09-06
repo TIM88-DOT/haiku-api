@@ -1,2 +1,2 @@
 # haiku-api
-Official Haiku REST API v2 for tracking tokens and their votes.
+Official Haiku v2 REST API for tracking tokens and their votes.
