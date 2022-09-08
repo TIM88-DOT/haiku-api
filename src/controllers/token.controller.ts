@@ -26,7 +26,7 @@ export const getTokenByAddress = async (req: Request, res: Response): Promise<Re
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     try {
         const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.tokenAddress]);
+        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
         if ((result[0] as Array<ResultSet>).length > 0) {
             return res.status(Code.OK)
                 .send(new HttpResponse(Code.OK, Status.OK, 'Token retrieved', result[0]));
@@ -85,7 +85,7 @@ export const deleteToken = async (req: Request, res: Response): Promise<Response
         if ((result[0] as Array<ResultSet>).length > 0) {
             const result: ResultSet = await pool.query(QUERY.DELETE_TOKEN, [req.params.tokenAddress]);
             return res.status(Code.OK)
-                .send(new HttpResponse(Code.OK, Status.OK, `Token ${req.params.tokenAddress} deleted`));
+                .send(new HttpResponse(Code.OK, Status.OK, `Token ${req.params.id} deleted`));
         } else {
             return res.status(Code.NOT_FOUND)
                 .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));

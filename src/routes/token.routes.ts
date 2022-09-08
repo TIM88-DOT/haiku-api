@@ -7,7 +7,7 @@ tokenRoute.route('/')
     .get(getTokens)
     .post(createToken);
 
-tokenRoute.route('/:tokenAddress')
+tokenRoute.route('/:address')
     .get(getTokenByAddress)
     .put(updateToken)
     .delete(deleteToken)
