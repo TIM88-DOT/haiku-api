@@ -10,7 +10,7 @@ import { QUERY } from "../queries/token.query";
 
 type ResultSet = [RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[] | ResultSetHeader, FieldPacket[]];
 
-export const getTokens = async (req: Request, res: Response): Promise<Response<Token[]>> => {
+export const getTokens = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     try {
         const pool = await connection();
@@ -22,7 +22,7 @@ export const getTokens = async (req: Request, res: Response): Promise<Response<T
     }
 }
 
-export const getTokenByAddress = async (req: Request, res: Response): Promise<Response<Token>> => {
+export const getTokenByAddress = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     try {
         const pool = await connection();
@@ -41,7 +41,7 @@ export const getTokenByAddress = async (req: Request, res: Response): Promise<Re
 }
 
 
-export const createToken = async (req: Request, res: Response): Promise<Response<Token>> => {
+export const createToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     let token: Token = { ...req.body };
     try {
@@ -56,14 +56,14 @@ export const createToken = async (req: Request, res: Response): Promise<Response
     }
 }
 
-export const updateToken = async (req: Request, res: Response): Promise<Response<Token>> => {
+export const updateToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     let token: Token = { ...req.body };
     try {
         const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.tokenAddress]);
+        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
         if ((result[0] as Array<ResultSet>).length > 0) {
-            const result: ResultSet = await pool.query(QUERY.UPDATE_TOKEN, [...Object.values(token),req.params.tokenAddress]);
+             await pool.query(QUERY.UPDATE_TOKEN, [...Object.values(token),req.params.address]);
             return res.status(Code.OK)
                 .send(new HttpResponse(Code.OK, Status.OK, 'Token updated',{...token} ));
         } else {
@@ -77,15 +77,15 @@ export const updateToken = async (req: Request, res: Response): Promise<Response
 }
 
 
-export const deleteToken = async (req: Request, res: Response): Promise<Response<Token>> => {
+export const deleteToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     try {
         const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.tokenAddress]);
+        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
         if ((result[0] as Array<ResultSet>).length > 0) {
-            const result: ResultSet = await pool.query(QUERY.DELETE_TOKEN, [req.params.tokenAddress]);
+           await pool.query(QUERY.DELETE_TOKEN, [req.params.address]);
             return res.status(Code.OK)
-                .send(new HttpResponse(Code.OK, Status.OK, `Token ${req.params.id} deleted`));
+                .send(new HttpResponse(Code.OK, Status.OK, `Token deleted`));
         } else {
             return res.status(Code.NOT_FOUND)
                 .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));
