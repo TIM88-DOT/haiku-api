@@ -4,6 +4,7 @@ import ip from "ip";
 import { HttpResponse } from "./domain/response";
 import { Code } from "./enums/code.enum";
 import { Status } from "./enums/status.enum";
+import { authRoute } from "./routes/auth.routes";
 import { tokenRoute } from "./routes/token.routes";
 
 export class App {
@@ -29,6 +30,8 @@ export class App {
 
     private routes(): void {
         this.app.use('/tokens', tokenRoute);
+
+        this.app.use('/auth', authRoute);
 
         this.app.get('/', (req: Request, res: Response) => res.status(Code.OK)
             .send(new HttpResponse(Code.OK, Status.OK, 'Welcome to Haiku API v1.0 !')));

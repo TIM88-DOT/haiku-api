@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { createToken, deleteToken, getTokenByAddress, getTokens, updateToken } from "../controllers/token.controller";
-
+import { ensureAuthenticated } from "../middleware/ensureAuthenticated.middleware";
 export const tokenRoute = Router();
 
 tokenRoute.route('/')
     .get(getTokens)
-    .post(createToken);
+    .post(ensureAuthenticated, createToken);
 
 tokenRoute.route('/:address')
     .get(getTokenByAddress)
-    .put(updateToken)
-    .delete(deleteToken)
+    .put(ensureAuthenticated, updateToken)
+    .delete(ensureAuthenticated, deleteToken)

@@ -40,7 +40,6 @@ export const getTokenByAddress = async (req: Request, res: Response): Promise<Re
     }
 }
 
-
 export const createToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     let token: Token = { ...req.body };
@@ -63,9 +62,9 @@ export const updateToken = async (req: Request, res: Response): Promise<Response
         const pool = await connection();
         const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
         if ((result[0] as Array<ResultSet>).length > 0) {
-             await pool.query(QUERY.UPDATE_TOKEN, [...Object.values(token),req.params.address]);
+            await pool.query(QUERY.UPDATE_TOKEN, [...Object.values(token), req.params.address]);
             return res.status(Code.OK)
-                .send(new HttpResponse(Code.OK, Status.OK, 'Token updated',{...token} ));
+                .send(new HttpResponse(Code.OK, Status.OK, 'Token updated', { ...token }));
         } else {
             return res.status(Code.NOT_FOUND)
                 .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));
@@ -76,14 +75,13 @@ export const updateToken = async (req: Request, res: Response): Promise<Response
     }
 }
 
-
 export const deleteToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     try {
         const pool = await connection();
         const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
         if ((result[0] as Array<ResultSet>).length > 0) {
-           await pool.query(QUERY.DELETE_TOKEN, [req.params.address]);
+            await pool.query(QUERY.DELETE_TOKEN, [req.params.address]);
             return res.status(Code.OK)
                 .send(new HttpResponse(Code.OK, Status.OK, `Token deleted`));
         } else {
