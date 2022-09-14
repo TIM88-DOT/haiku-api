@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admins {
+  id       Int    @id @unique(map: "id_UNIQUE") @default(autoincrement()) @db.UnsignedInt
+  adminId String @unique(map: "adminId_UNIQUE") @db.VarChar(45) @map("admin_id")
+  email    String @unique(map: "email_UNIQUE") @db.VarChar(45)
+  password String @db.VarChar(255)
+}
+
+model tokens {
+  id         Int       @id @default(autoincrement()) @db.UnsignedInt
+  name       String    @db.VarChar(45)
+  symbol     String?   @db.VarChar(45)
+  address    String    @unique(map: "address_UNIQUE") @db.VarChar(45)
+  chainId   String    @db.VarChar(45) @map("chain_id")
+  voteCount Int?      @default(0) @map("vote_count")
+  createdAt DateTime? @default(now()) @db.Timestamp(0) @map("created_at")
+}

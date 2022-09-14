@@ -3,6 +3,6 @@ export interface Token {
     name: string;
     symbol: string;
     address: string;
-    chainId: number;
-    vote_count: number;
+    chainId: string;
+    voteCount: number;
 } 

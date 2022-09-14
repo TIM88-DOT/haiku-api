@@ -1,21 +1,18 @@
 import { Request, Response } from "express";
-import { RowDataPacket, OkPacket, ResultSetHeader, FieldPacket } from "mysql2";
 import logger from "../config/logger.config";
-import { connection } from "../config/mysql.config";
 import { HttpResponse } from "../domain/response";
 import { Code } from "../enums/code.enum";
 import { Status } from "../enums/status.enum";
 import { Token } from "../interfaces/token.interface";
-import { QUERY } from "../queries/token.query";
+import { PrismaClient } from '@prisma/client'
 
-type ResultSet = [RowDataPacket[] | RowDataPacket[][] | OkPacket | OkPacket[] | ResultSetHeader, FieldPacket[]];
+const prisma = new PrismaClient();
 
 export const getTokens = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     try {
-        const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.SELECT_TOKENS);
-        return res.status(Code.OK).send(new HttpResponse(Code.OK, Status.OK, 'All tokens retrieved', result[0]));
+        const allTokens = await prisma.tokens.findMany();
+        return res.status(Code.OK).send(new HttpResponse(Code.OK, Status.OK, 'All tokens retrieved', allTokens));
     } catch (error: unknown) {
         logger.info(`Error : ${error}`);
         return res.status(Code.INTERNAL_SERVER_ERROR).send(new HttpResponse(Code.INTERNAL_SERVER_ERROR, Status.INTERNAL_SERVER_ERROR, 'An error has occured'));
@@ -25,11 +22,14 @@ export const getTokens = async (req: Request, res: Response): Promise<Response<H
 export const getTokenByAddress = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     try {
-        const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
-        if ((result[0] as Array<ResultSet>).length > 0) {
+        const token = await prisma.tokens.findUnique({
+            where: {
+                address: req.params.address,
+            },
+        })
+        if (token) {
             return res.status(Code.OK)
-                .send(new HttpResponse(Code.OK, Status.OK, 'Token retrieved', result[0]));
+                .send(new HttpResponse(Code.OK, Status.OK, 'Token retrieved', token));
         } else {
             return res.status(Code.NOT_FOUND)
                 .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));
@@ -42,13 +42,19 @@ export const getTokenByAddress = async (req: Request, res: Response): Promise<Re
 
 export const createToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
-    let token: Token = { ...req.body };
+    let requestToken: Token = { ...req.body };
     try {
-        const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.CREATE_TOKEN, Object.values(token));
-        token = { id: (result[0] as ResultSetHeader).insertId, ...req.body }
+        const newtoken = await prisma.tokens.create({
+            data: {
+                name: requestToken.name,
+                symbol: requestToken.symbol,
+                address: requestToken.address,
+                chainId: requestToken.chainId,
+                voteCount: requestToken.voteCount
+            },
+        });
         return res.status(Code.CREATED)
-            .send(new HttpResponse(Code.CREATED, Status.CREATED, 'New token created', token));
+            .send(new HttpResponse(Code.CREATED, Status.CREATED, 'New token created', newtoken));
     } catch (error: unknown) {
         logger.info(`Error : ${error}`);
         return res.status(Code.INTERNAL_SERVER_ERROR).send(new HttpResponse(Code.INTERNAL_SERVER_ERROR, Status.INTERNAL_SERVER_ERROR, 'An error has occured'));
@@ -58,18 +64,30 @@ export const createToken = async (req: Request, res: Response): Promise<Response
 export const updateToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
     let token: Token = { ...req.body };
+
+    const tokenExists = await prisma.tokens.findUnique({ where: { address: token.address } });
+    if (!tokenExists) {
+        return res.status(Code.NOT_FOUND)
+            .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));
+    }
+
     try {
-        const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
-        if ((result[0] as Array<ResultSet>).length > 0) {
-            await pool.query(QUERY.UPDATE_TOKEN, [...Object.values(token), req.params.address]);
-            return res.status(Code.OK)
-                .send(new HttpResponse(Code.OK, Status.OK, 'Token updated', { ...token }));
-        } else {
-            return res.status(Code.NOT_FOUND)
-                .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));
-        }
-    } catch (error: unknown) {
+        const updateToken = await prisma.tokens.update({
+            where: {
+                address: token.address,
+            },
+            data: {
+                name: token.name,
+                symbol: token.symbol,
+                address: token.address,
+                chainId: token.chainId,
+                voteCount: token.voteCount
+            },
+        })
+        return res.status(Code.OK)
+            .send(new HttpResponse(Code.OK, Status.OK, 'Token updated', updateToken));
+    }
+    catch (error: unknown) {
         logger.info(`Error : ${error}`);
         return res.status(Code.INTERNAL_SERVER_ERROR).send(new HttpResponse(Code.INTERNAL_SERVER_ERROR, Status.INTERNAL_SERVER_ERROR, 'An error has occured'));
     }
@@ -77,18 +95,23 @@ export const updateToken = async (req: Request, res: Response): Promise<Response
 
 export const deleteToken = async (req: Request, res: Response): Promise<Response<HttpResponse>> => {
     logger.info(`Incoming ${req.method}${req.originalUrl} Request from ${req.rawHeaders[0]} ${req.rawHeaders[1]}`);
+
+    const tokenExists = await prisma.tokens.findUnique({ where: { address: req.params.address } });
+    if (!tokenExists) {
+        return res.status(Code.NOT_FOUND)
+            .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));
+    }
+
     try {
-        const pool = await connection();
-        const result: ResultSet = await pool.query(QUERY.SELECT_TOKEN_BY_ADDRESS, [req.params.address]);
-        if ((result[0] as Array<ResultSet>).length > 0) {
-            await pool.query(QUERY.DELETE_TOKEN, [req.params.address]);
-            return res.status(Code.OK)
-                .send(new HttpResponse(Code.OK, Status.OK, `Token deleted`));
-        } else {
-            return res.status(Code.NOT_FOUND)
-                .send(new HttpResponse(Code.NOT_FOUND, Status.NOT_FOUND, 'Token not found'));
-        }
-    } catch (error: unknown) {
+        await prisma.tokens.delete({
+            where: {
+                address: req.params.address,
+            },
+        })
+        return res.status(Code.OK)
+            .send(new HttpResponse(Code.OK, Status.OK, `Token deleted`));
+    }
+    catch (error: unknown) {
         logger.info(`Error : ${error}`);
         return res.status(Code.INTERNAL_SERVER_ERROR).send(new HttpResponse(Code.INTERNAL_SERVER_ERROR, Status.INTERNAL_SERVER_ERROR, 'An error has occured'));
     }
