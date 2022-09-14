@@ -1,10 +1,6 @@
 import { Request, Response } from "express";
 import dotenv from 'dotenv';
 import { Secret, verify } from "jsonwebtoken";
-import { connection } from "../config/mysql.config";
-import { Admin } from "../interfaces/admin.interface";
-import { ADMIN_QUERY } from "../queries/admin.query";
-import { RowDataPacket, OkPacket, ResultSetHeader, FieldPacket } from "mysql2";
 import logger from "../config/logger.config";
 import { PrismaClient } from "@prisma/client";
 
